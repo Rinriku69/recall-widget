@@ -21,7 +21,17 @@ import tkinter as tk
 from ctypes import wintypes
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+# หาโฟลเดอร์ที่เก็บไฟล์โน้ตกับไฟล์ state
+# - รันเป็น .pyw: __file__ คือตัวสคริปต์ ใช้โฟลเดอร์ของมันได้เลย
+# - รันเป็น exe จาก PyInstaller --onefile: ตอนรัน exe จะแตกโค้ดไปไว้ในโฟลเดอร์ temp
+#   __file__ เลยชี้ไปที่ temp ซึ่งโดนลบทิ้งตอนปิดโปรแกรม ต้องใช้ sys.executable
+#   (path ของตัว exe) แทน ไฟล์โน้ตจะได้อยู่ข้าง exe ให้ผู้ใช้แก้เองได้
+#   PyInstaller ตั้ง sys.frozen = True ไว้ให้ ใช้ getattr ใส่ค่า default เป็น False
+#   เพราะตอนรันด้วย Python ปกติจะไม่มี attribute นี้เลย
+if getattr(sys, "frozen", False):
+    HERE = Path(sys.executable).resolve().parent
+else:
+    HERE = Path(__file__).resolve().parent
 FACTS_FILE = HERE / "linux-facts.md"
 STATE_FILE = HERE / ".fact_widget_state.json"  # จำตำแหน่งหน้าต่าง + ค่า topmost
 
