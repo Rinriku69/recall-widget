@@ -1,14 +1,14 @@
-# คู่มือสำหรับ Claude Code ใช้ส่วนตัว ไม่แชร์
+# Private guidance for Claude Code, not shared
 CLAUDE.md
 
-# สถานะหน้าต่างบนเครื่องนี้ (ตำแหน่ง, topmost) ไม่ใช่ข้อมูลที่ควรแชร์
+# Window state on this machine (position, topmost), not meant to be shared
 .fact_widget_state.json
 
 # Python cache
 __pycache__/
 *.pyc
 
-# ผลลัพธ์จาก PyInstaller: exe แจกผ่าน GitHub Releases ไม่ commit ลง repo
+# PyInstaller output: the exe is distributed via GitHub Releases, not committed
 build/
 dist/
 *.spec
