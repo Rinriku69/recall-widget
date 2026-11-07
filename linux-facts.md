@@ -1,511 +1,511 @@
-# Linux / Docker facts ที่ชอบลืม
+# Linux / Docker facts I keep forgetting
 
 <!--
-รูปแบบ: หัวข้อ "## ..." แต่ละอัน = 1 fact
-  - บรรทัด "## " = คำถาม (widget โชว์ก่อน)
-  - ข้อความใต้หัวข้อจนถึง "## " ถัดไป = คำตอบ
-  - ใส่ `backtick` ได้ widget จะแสดงเป็นฟอนต์ code
-แก้ไฟล์แล้วเซฟ widget จะโหลดใหม่เอง
+Format: each "## ..." heading = 1 fact
+  - The "## " line = the question (the widget shows it first)
+  - Text under the heading up to the next "## " = the answer
+  - `backticks` are shown in the code font
+Save the file and the widget reloads it automatically
 -->
 
-## `rm -r` กับ `rm -f` คืออะไร
-`-r` = recursive: ลบโฟลเดอร์ได้ ไล่ลบทุกอย่างข้างใน (ไม่ใส่ `-r` `rm` จะไม่ยอมลบโฟลเดอร์)
-`-f` = force: ไม่ถามยืนยัน และไม่ error ถ้าไม่มีไฟล์
-`-rf` คือสองตัวเขียนรวมกัน
+## What are `rm -r` and `rm -f`
+`-r` = recursive: can delete folders, removing everything inside (without `-r`, `rm` refuses to delete a folder)
+`-f` = force: no confirmation prompt, and no error if the file doesn't exist
+`-rf` is the two combined
 
-## `rm -rf dir/*` กับ `rm -rf dir/` ต่างกันยังไง
-`dir/*` ลบของข้างใน โฟลเดอร์ `dir` ยังอยู่ (ว่าง)
-`dir/` ลบตัวโฟลเดอร์ทิ้งทั้งก้อน
-เพราะ `*` ถูก shell ขยายเป็นรายชื่อไฟล์ก่อน `rm` จะเห็น ชื่อ `dir` เองไม่อยู่ในรายการ
+## `rm -rf dir/*` vs `rm -rf dir/`
+`dir/*` deletes the contents; the folder `dir` itself stays (empty)
+`dir/` deletes the whole folder
+Because the shell expands `*` into a list of files before `rm` sees it, and `dir` itself isn't in that list
 
-## ใครเป็นคนแปลง `*` ใน `rm dir/*`
-shell (bash/sh) ไม่ใช่ `rm`
-shell ขยาย `*` เป็นรายชื่อไฟล์ก่อนส่งให้คำสั่ง
-`*` ไม่จับไฟล์ที่ขึ้นต้นด้วยจุด เช่น `.env`
+## Who expands the `*` in `rm dir/*`
+The shell (bash/sh), not `rm`
+The shell expands `*` into a list of files before passing them to the command
+`*` doesn't match files starting with a dot, like `.env`
 
-## ทำไม `rm -rf` อันตราย
-ไม่ถาม ไม่มีถังขยะ path ผิดหรือมีช่องว่างเกินตัวเดียวก็ลบผิดที่
-ใน `RUN` ของ Dockerfile ไม่เป็นไร เพราะกระทบแค่ image ที่กำลัง build
+## Why is `rm -rf` dangerous
+No prompt, no trash bin. A wrong path or one stray space deletes the wrong thing
+Inside a Dockerfile `RUN` it's fine, because it only affects the image being built
 
-## image กับ container ต่างกันยังไง
-image = แม่แบบ อ่านได้อย่างเดียว เช่น `nginx:stable-alpine`
-container = ตัวที่รันจริง ถูกสร้างใหม่จาก image ทุกครั้งที่ `docker run`
+## image vs container
+image = a template, read-only, e.g. `nginx:stable-alpine`
+container = the thing actually running, created fresh from an image on every `docker run`
 
-## `docker run --rm` คืออะไร
-ลบ container ทิ้งอัตโนมัติเมื่อ process จบ
-ไม่ใส่ = container ค้างสถานะ Exited (ดูด้วย `docker ps -a`, ลบด้วย `docker container prune`)
-`--rm` ไม่ลบ image
+## What does `docker run --rm` do
+Removes the container automatically when its process ends
+Without it = the container stays around in Exited state (see it with `docker ps -a`, remove it with `docker container prune`)
+`--rm` doesn't remove the image
 
-## `docker run nginx:stable-alpine cat /etc/nginx/nginx.conf` ทำอะไร
-คำที่ต่อท้ายชื่อ image จะทับ `CMD` เดิมของ image
-เลยรัน `cat` แทนการเปิด nginx พอ `cat` จบ container ก็หยุด
-ใช้แอบดูไฟล์ใน image ได้ (ใส่ `--rm` ด้วยจะได้ไม่ค้าง)
+## What does `docker run nginx:stable-alpine cat /etc/nginx/nginx.conf` do
+Words after the image name override the image's `CMD`
+So it runs `cat` instead of starting nginx, and the container stops when `cat` finishes
+Handy for peeking at a file inside an image (add `--rm` so it doesn't linger)
 
-## `RUN rm` ไฟล์ใน layer หลัง ทำให้ image เล็กลงไหม
-ไม่ ไฟล์ยังอยู่ใน layer ก่อนหน้า แค่ถูกซ่อน
-อยากให้เล็กจริงต้องลบในบรรทัด `RUN` เดียวกับที่สร้างไฟล์นั้น
+## Does `RUN rm` in a later layer make the image smaller
+No. The file still exists in the earlier layer, it's just hidden
+To actually shrink the image, delete it in the same `RUN` line that created the file
 
-## `WORKDIR` ใน Dockerfile ต่างจาก `RUN cd` ยังไง
-`WORKDIR` ตั้งโฟลเดอร์ปัจจุบันให้ทุกบรรทัดถัดไป (สร้างให้ถ้ายังไม่มี) นิยมใช้ `/app`
-`RUN cd` มีผลแค่บรรทัดนั้น เพราะ `RUN` แต่ละบรรทัดรันใน shell ใหม่
+## `WORKDIR` in a Dockerfile vs `RUN cd`
+`WORKDIR` sets the current folder for every following line (creating it if missing). `/app` is the usual choice
+`RUN cd` only affects that one line, because each `RUN` runs in a new shell
 
-## multi-stage: `WORKDIR` หรือไฟล์ใน stage แรก ข้ามไป stage ถัดไปไหม
-ไม่ข้าม ทุก `FROM` เริ่มจาก filesystem ของ base image ใหม่หมด (`WORKDIR`, `ENV`, ไฟล์, โปรแกรม หายหมด)
-ทางเดียวที่ข้ามได้คือ `COPY --from=<ชื่อ stage>` ซึ่งหยิบมาเฉพาะ path ที่สั่ง
-image สุดท้ายจึงไม่มี `node_modules` หรือตัว node ติดไป
+## multi-stage: do `WORKDIR` or files from the first stage carry over to the next
+No. Every `FROM` starts fresh from its base image's filesystem (`WORKDIR`, `ENV`, files, programs: all gone)
+The only way across is `COPY --from=<stage name>`, which takes just the paths you name
+That's why the final image has no `node_modules` or node binary
 
-## path ต้นทางของ `COPY --from=build` นับจากไหน
-นับจาก `/` ของ stage ต้นทาง ไม่ใช่จาก `WORKDIR` ของมัน
-stage แรกตั้ง `WORKDIR /app` ไว้ → ต้องเขียน `COPY --from=build /app/dist/web/browser/ ...`
-ส่วนปลายทางนับจาก `WORKDIR` ของ stage ปัจจุบัน (เขียน path เต็มจะไม่ต้องคิด)
+## Where is the source path of `COPY --from=build` relative to
+To `/` of the source stage, not to its `WORKDIR`
+If the first stage set `WORKDIR /app` → you must write `COPY --from=build /app/dist/web/browser/ ...`
+The destination is relative to the current stage's `WORKDIR` (write a full path and you don't have to think about it)
 
-## layer cache ของแต่ละ stage เกี่ยวกันไหม
-ที่เก็บ cache ใช้ร่วมกัน แต่แต่ละ stage มีสาย layer ของตัวเอง
-บรรทัดไหนเปลี่ยน บรรทัดนั้นและทุกบรรทัดหลังจากนั้นใน stage เดียวกันรันใหม่
-ข้าม stage เชื่อมกันแค่ผ่าน `COPY --from` ถ้า `dist` เปลี่ยน บรรทัดนั้นใน stage nginx ก็ทำใหม่ด้วย
+## Are layer caches of different stages related
+The cache store is shared, but each stage has its own chain of layers
+When a line changes, that line and every later line in the same stage re-run
+Stages only connect through `COPY --from`: if `dist` changes, that line in the nginx stage is redone too
 
-## `COPY dist/app/browser /usr/share/nginx/html` ได้ `html/browser/` ไหม
-ไม่ได้ เมื่อ source เป็นโฟลเดอร์ Docker copy ของข้างใน ไม่เอาตัวโฟลเดอร์ไปด้วย
-ผลคือ `html/index.html` ไม่ใช่ `html/browser/index.html`
-ใส่ `/` ท้ายเป็น `html/` หรือไม่ใส่ ผลก็เหมือนกัน
+## Does `COPY dist/app/browser /usr/share/nginx/html` give `html/browser/`
+No. When the source is a folder, Docker copies its contents, not the folder itself
+Result: `html/index.html`, not `html/browser/index.html`
+A trailing `/` on `html/` or not makes no difference
 
-## Docker `COPY` ลบของเดิมในโฟลเดอร์ปลายทางไหม
-ไม่ลบ แต่ merge: ไฟล์ชื่อซ้ำถูกทับ ไฟล์ที่ไม่ซ้ำยังอยู่
-เช่น `index.html` ของ nginx ถูกทับ แต่ `50x.html` ยังค้าง
-อยากให้สะอาด: `RUN rm -rf /usr/share/nginx/html/*` ก่อน `COPY`
+## Does Docker `COPY` delete what's already in the destination folder
+No, it merges: files with the same name are overwritten, others stay
+e.g. nginx's `index.html` gets overwritten but `50x.html` is left behind
+For a clean folder: `RUN rm -rf /usr/share/nginx/html/*` before `COPY`
 
-## `/` ท้าย destination ของ `COPY` มีผลเมื่อไหร่
-มีผลตอน source เป็นไฟล์
-`COPY nginx.conf /etc/nginx/conf.d/` → ได้ `conf.d/nginx.conf`
-`COPY nginx.conf /etc/nginx/site.conf` → ได้ไฟล์ชื่อ `site.conf` (เปลี่ยนชื่อไปในตัว)
-ตั้งใจให้ปลายทางเป็นโฟลเดอร์ ใส่ `/` ปิดท้ายเสมอ
+## When does a trailing `/` on the `COPY` destination matter
+When the source is a file
+`COPY nginx.conf /etc/nginx/conf.d/` → gives `conf.d/nginx.conf`
+`COPY nginx.conf /etc/nginx/site.conf` → gives a file named `site.conf` (renamed on the way)
+If you mean the destination to be a folder, always end it with `/`
 
-## `cp -r` ของ Linux ต่างจาก Docker `COPY` ยังไง
-`cp -r browser html` (มี `html` อยู่แล้ว) → ได้ `html/browser/` คือ copy ตัวโฟลเดอร์ไปทั้งก้อน
-`/` ท้าย source (`browser/`) ก็ยังได้แบบเดิม
-อยากได้แค่ของข้างใน: `cp -r browser/. html/`
-Docker `COPY` copy ของข้างในเสมอ
+## Linux `cp -r` vs Docker `COPY`
+`cp -r browser html` (with `html` already existing) → gives `html/browser/`, copying the folder itself
+A trailing `/` on the source (`browser/`) still gives the same result
+To copy only the contents: `cp -r browser/. html/`
+Docker `COPY` always copies the contents
 
-## Dockerfile กับ `docker build` มีไว้สร้างอะไร
-สร้าง image อย่างเดียว ไม่ได้รัน container
-container เกิดทีหลังตอน `docker run` (หรือ `docker compose up`) โดยสร้างจาก image นั้น
-ใน Dockerfile จึงมีแค่ `RUN` ที่ทำงานตอน build ส่วน `CMD` เป็นแค่โน้ตว่าตอน run ให้ทำอะไร
+## What do a Dockerfile and `docker build` produce
+Only an image. They don't run a container
+A container comes later with `docker run` (or `docker compose up`), created from that image
+So in a Dockerfile only `RUN` executes at build time; `CMD` is just a note about what to run at start
 
-## `RUN` กับ `CMD` ใน Dockerfile ทำงานตอนไหน
-`RUN` = ตอน build image (`docker build`) ผลที่ได้คือไฟล์ที่เปลี่ยน ถูกบันทึกเป็น layer
-`CMD` = ตอน start container (`docker run`) ตอน build ไม่ได้รัน แค่จดไว้ใน metadata ว่าให้รันคำสั่งนี้ตอน start
+## When do `RUN` and `CMD` in a Dockerfile run
+`RUN` = when building the image (`docker build`). The files it changes are saved as a layer
+`CMD` = when the container starts (`docker run`). It doesn't run at build time; it's only recorded in metadata as the start command
 
-## ถ้าเขียน `RUN nginx -g "daemon off;"` จะเกิดอะไร
-`docker build` ค้างตลอดไป เพราะ `RUN` รอคำสั่งจบก่อน แต่ server ถูกออกแบบมาให้ไม่จบ
-ต่อให้จบได้ก็ไม่มีประโยชน์ image เก็บแค่ไฟล์ ไม่ได้เก็บ process ที่กำลังรัน
+## What happens if you write `RUN nginx -g "daemon off;"`
+`docker build` hangs forever, because `RUN` waits for the command to finish and a server is designed never to finish
+Even if it did finish, it'd be pointless: an image stores files, not running processes
 
-## ทำไม `CMD` ต้องเขียนเป็น array `["nginx", "-g", "daemon off;"]`
-แบบ array (exec form): รัน `nginx` ตรงๆ เป็น PID 1 เลยได้รับสัญญาณ `SIGTERM` จาก `docker stop` แล้วปิดตัวอย่างเรียบร้อย
-แบบ string `CMD nginx -g "daemon off;"` (shell form): รันผ่าน `/bin/sh -c` ตัว `sh` เป็น PID 1 และไม่ส่งสัญญาณต่อ `docker stop` เลยรอ 10 วิแล้ว kill ทิ้ง
+## Why write `CMD` as an array `["nginx", "-g", "daemon off;"]`
+Array (exec form): runs `nginx` directly as PID 1, so it receives `SIGTERM` from `docker stop` and shuts down cleanly
+String `CMD nginx -g "daemon off;"` (shell form): runs through `/bin/sh -c`. `sh` becomes PID 1 and doesn't forward the signal, so `docker stop` waits 10 s and then kills it
 
-## `daemon off;` ใน `CMD` ของ nginx มีไว้ทำไม
-ให้ nginx รันค้างอยู่ด้านหน้า (foreground) ไม่แยกตัวไปทำงานเบื้องหลัง
-container อยู่ได้นานเท่ากับ PID 1 ถ้า nginx แยกตัวไปเบื้องหลัง process หลักจะจบทันทีและ container ก็หยุดตาม
+## Why `daemon off;` in nginx's `CMD`
+Keeps nginx running in the foreground instead of detaching into the background
+A container lives as long as PID 1. If nginx went to the background, the main process would exit immediately and the container would stop
 
-## Dockerfile มี `CMD` หลายบรรทัดจะเป็นยังไง
-ใช้แค่บรรทัดสุดท้าย
-และ `CMD` เป็นแค่ค่า default คำที่ต่อท้ายชื่อ image ตอน `docker run` จะทับมัน
+## What if a Dockerfile has several `CMD` lines
+Only the last one counts
+And `CMD` is just a default: words after the image name in `docker run` override it
 
-## `CMD` แบบ array ใช้ `$VAR` หรือ `&&` ได้ไหม
-ไม่ได้ เพราะไม่มี shell มาแปลงให้
-ถ้าจำเป็นให้เขียน `["sh", "-c", "..."]` (แต่ `sh` จะกลายเป็น PID 1 แทน)
+## Can array-form `CMD` use `$VAR` or `&&`
+No, because there's no shell to interpret them
+If you need them, write `["sh", "-c", "..."]` (but then `sh` becomes PID 1 instead)
 
-## `;` ท้าย `"daemon off;"` เป็นของใคร
-ของ nginx ทุก directive ต้องปิดด้วย `;` เหมือนใน `nginx.conf`
-ไม่เกี่ยวกับ shell
+## Who owns the `;` at the end of `"daemon off;"`
+nginx. Every directive must end with `;`, just like in `nginx.conf`
+It has nothing to do with the shell
 
-## nginx `default_server` คืออะไร อยู่ไฟล์ไหน
-ไม่ได้อยู่ไฟล์ไหน เป็นพารามิเตอร์ของ `listen` ที่ต้องเขียนเพิ่มเอง เช่น `listen 80 default_server;`
-config ที่มากับ image nginx ไม่มีบรรทัดนี้เลย
-เอกสาร: nginx.org หน้า "How nginx processes a request"
+## What is nginx `default_server`, and which file is it in
+It's not in any file. It's a parameter of `listen` you add yourself, e.g. `listen 80 default_server;`
+The config shipped with the nginx image doesn't have this line at all
+Docs: nginx.org, "How nginx processes a request"
 
-## nginx เลือก `server` block ไหน เมื่อมี request เข้าพอร์ต 80
-1. เอา header `Host` ไปเทียบกับ `server_name` ของทุก server ที่ listen พอร์ตนั้น ตรงตัวไหนใช้ตัวนั้น
-2. ไม่ตรงเลย → ใช้ตัวที่มี `default_server`
-3. ไม่มี `default_server` → ใช้ server ตัวแรกตามลำดับที่อ่าน config (`include conf.d/*.conf` อ่านไฟล์เรียงตามชื่อ)
+## Which `server` block does nginx pick for a request on port 80
+1. Compare the `Host` header with `server_name` of every server listening on that port. A match wins
+2. No match → use the one marked `default_server`
+3. No `default_server` → use the first server in config read order (`include conf.d/*.conf` reads files sorted by name)
 
-## `server_name` ใน nginx ของ container แอป ต้องใส่ไหม
-ใส่อะไรก็ได้ ถ้ามี server block เดียว เพราะ Host ไม่ตรงก็ตกไปใช้ตัวแรก ซึ่งก็คือตัวเดียวที่มี
-แต่ image nginx มี `conf.d/default.conf` ติดมา ต้อง `COPY` ทับชื่อนั้น
-ถ้าตั้งชื่ออื่นจะมีสองตัว ตัดสินด้วยลำดับชื่อไฟล์ เช่น `web.conf` แพ้ `default.conf` ได้หน้า Welcome to nginx
+## Does nginx inside an app container need `server_name`
+With a single server block, anything works: when Host doesn't match it falls back to the first, which is the only one
+But the nginx image ships `conf.d/default.conf`, so you must `COPY` over that exact name
+Use a different name and you have two; file-name order decides, e.g. `web.conf` loses to `default.conf` and you get the "Welcome to nginx" page
 
-## nginx `root` หาไฟล์ยังไง
-เอา `root` + path ของ request มาต่อกัน
-`root /usr/share/nginx/html;` แล้วขอ `/data/draws.json` → อ่าน `/usr/share/nginx/html/data/draws.json`
+## How does nginx `root` find a file
+It joins `root` + the request path
+`root /usr/share/nginx/html;` and a request for `/data/draws.json` → reads `/usr/share/nginx/html/data/draws.json`
 
-## nginx `index` ทำอะไร
-ถ้าขอเป็นโฟลเดอร์ (path ลงท้ายด้วย `/`) ให้ลองหาไฟล์ตามชื่อใน `index` ในโฟลเดอร์นั้น
-`index index.html;` แล้วขอ `/` → ได้ `/usr/share/nginx/html/index.html`
+## What does nginx `index` do
+When the request is for a folder (path ends in `/`), it looks for files named in `index` inside that folder
+`index index.html;` and a request for `/` → serves `/usr/share/nginx/html/index.html`
 
-## nginx เลือก `location` บล็อกไหน
-รอบ 1 prefix: หาตัวที่ตรงยาวที่สุด ไม่สนลำดับในไฟล์ แล้วจำไว้
-รอบ 2 regex (`~`, `~*`): ไล่ตามลำดับในไฟล์ ตัวแรกที่ตรงชนะ prefix ที่จำไว้ทันที
-ไม่มี regex ตรงเลย → ใช้ prefix ที่จำไว้
+## How does nginx choose a `location` block
+Pass 1, prefix: find the longest matching one, regardless of file order, and remember it
+Pass 2, regex (`~`, `~*`): checked in file order; the first match immediately beats the remembered prefix
+No regex matches → use the remembered prefix
 
-## nginx `location =` กับ `location ^~` ต่างจาก prefix ธรรมดายังไง
-`= /path` ตรงเป๊ะ ชนะทันทีตั้งแต่ต้น ไม่ต้องไปรอบ regex
-`^~ /path` เป็น prefix ที่บอกว่า "ถ้าฉันยาวที่สุด ห้าม regex แย่ง" ข้ามรอบ regex ไปเลย
+## nginx `location =` and `location ^~` vs a plain prefix
+`= /path` exact match; wins immediately, no regex pass
+`^~ /path` is a prefix that says "if I'm the longest, regex may not override me", skipping the regex pass
 
-## nginx `location /` ดักทุก request ก่อนใช่ไหม
-ไม่ใช่ มันคือ prefix ที่สั้นที่สุด (ตัวเดียว) เลยตรงทุก request ก็จริง
-แต่แพ้ prefix ที่ยาวกว่าเสมอ และแพ้ regex ทุกตัวที่ตรง
-คือ "ค่าเริ่มต้นเมื่อไม่มีตัวไหนเจาะจงกว่า" ไม่ใช่ประตูหน้าที่ทุก request ต้องผ่าน
+## Does nginx `location /` catch every request first
+No. It's the shortest possible prefix (one character), so it does match every request
+But it always loses to longer prefixes and to every matching regex
+It's "the default when nothing more specific matches", not a front door every request passes through
 
-## ทำไม nginx prefix ไม่สนลำดับในไฟล์ แต่ regex สน
-prefix เก็บในต้นไม้เรียงตามตัวอักษร หาตัวที่ยาวที่สุดได้เร็วโดยไม่ต้องไล่ทีละตัว ผลเลยไม่ขึ้นกับลำดับ
-regex ช้ากว่าและตรงทับซ้อนกันได้ จึงต้องไล่ตามลำดับในไฟล์
+## Why does nginx ignore file order for prefixes but not for regex
+Prefixes are stored in a tree sorted alphabetically, so the longest is found quickly without scanning one by one; order doesn't matter
+Regexes are slower and can overlap, so they're checked in file order
 
-## nginx มี `location /`, `/data/`, `~* index\.html$` ขอ `/index.html` เข้าบล็อกไหน
+## nginx has `location /`, `/data/`, `~* index\.html$`. Which block gets `/index.html`
 `~* index\.html$`
-รอบ 1 prefix ที่ตรงมีแค่ `/` → จำไว้
-รอบ 2 regex `index\.html$` ตรง → ชนะ
+Pass 1: the only matching prefix is `/` → remembered
+Pass 2: regex `index\.html$` matches → wins
 
-## `try_files $uri $uri/ /index.html` แล้วตกไปที่ `/index.html` ใช้ location เดิมไหม
-ไม่ ตัวสุดท้ายของ `try_files` เป็น internal redirect nginx เลือก location ใหม่ทั้งหมด
-เช่นขอ `/special` → ไม่มีไฟล์ → ไป `/index.html` → เข้าบล็อก `~* index\.html$` แทน
+## `try_files $uri $uri/ /index.html` falls back to `/index.html`. Same location?
+No. The last item of `try_files` is an internal redirect; nginx picks a location all over again
+e.g. a request for `/special` → no file → goes to `/index.html` → lands in the `~* index\.html$` block instead
 
-## nginx: regex `~* \.js$` ระดับบนสุด กับ `location /data/` มีกับดักอะไร
-ขอ `/data/x.js`: รอบ 1 ได้ `/data/` แต่รอบ 2 regex `\.js$` ตรง → regex ชนะ
-ไฟล์ใต้ `/data/` เลยได้ cache 1 ปีแบบไฟล์ที่มี hash ทั้งที่ตั้งใจให้ `no-cache`
-ตอนนี้ยังไม่พังถ้าใน `/data/` ยังไม่มีไฟล์ที่ตรงกับ regex แต่จะพังเงียบๆ วันที่มีคนเพิ่มไฟล์แบบนั้น
-แก้: ย้าย regex ไปซ้อนใน `location / { ... }` (ถูกเช็คเฉพาะตอน `/` เป็น prefix ที่ชนะ) หรือใช้ `location ^~ /data/`
+## nginx: what's the trap with a top-level regex `~* \.js$` and `location /data/`
+Request `/data/x.js`: pass 1 gives `/data/`, but in pass 2 the regex `\.js$` matches → regex wins
+So files under `/data/` get the 1-year cache meant for hashed files, instead of the intended `no-cache`
+It doesn't break yet if `/data/` has no file matching the regex, but it breaks silently the day someone adds one
+Fix: nest the regex inside `location / { ... }` (only checked when `/` is the winning prefix), or use `location ^~ /data/`
 
-## เช็คยังไงว่า request เข้า nginx location บล็อกไหน
-ใส่ header ต่างกันในแต่ละบล็อก เช่น `add_header X-Hit "prefix-data" always;`
-แล้ว `curl -I http://localhost:8080/data/x.js` ดูค่า `X-Hit`
+## How to check which nginx location block a request hits
+Add a different header in each block, e.g. `add_header X-Hit "prefix-data" always;`
+Then `curl -I http://localhost:8080/data/x.js` and look at `X-Hit`
 
-## regex: `.` กับ `\.` ต่างกันยังไง
-`.` = ตัวอักษรอะไรก็ได้ 1 ตัว: `a.c` ตรงกับ `abc`, `a-c`, `a.c`
-`\.` = จุดจริงๆ (`\` ยกเลิกความหมายพิเศษ): `\.js` ตรงกับ `.js` เท่านั้น
+## regex: `.` vs `\.`
+`.` = any single character: `a.c` matches `abc`, `a-c`, `a.c`
+`\.` = a literal dot (`\` cancels the special meaning): `\.js` matches only `.js`
 
-## regex: `^` กับ `$` คืออะไร
-`^` = เริ่มข้อความตรงนี้: `^/data/` = ขึ้นต้นด้วย `/data/`
-`$` = จบข้อความตรงนี้: `\.js$` = ลงท้ายด้วย `.js`
+## regex: what are `^` and `$`
+`^` = text starts here: `^/data/` = starts with `/data/`
+`$` = text ends here: `\.js$` = ends with `.js`
 
-## regex: วงเล็บ `(...)` ทำหน้าที่อะไรบ้าง
-1. จัดกลุ่ม (grouping): กำหนดขอบเขตของ `|`
-2. จำค่า (capturing): เก็บข้อความที่ตรงไว้เป็น `$1`, `$2`, ... เอาไปใช้ต่อได้
-`(?:...)` = ใช้แค่หน้าที่ 1 ไม่จำค่า เรียกว่า non-capturing group
+## regex: what do parentheses `(...)` do
+1. Grouping: set the scope of `|`
+2. Capturing: save the matched text as `$1`, `$2`, ... for later use
+`(?:...)` = does only job 1, no capturing. Called a non-capturing group
 
-## regex: `(js|css)` กับ `(?:js|css)` ต่างกันยังไง
-match ได้ผลเหมือนกัน ต่างแค่ `(...)` จำค่าเป็น `$1` ส่วน `(?:...)` ไม่จำ
-ถ้าไม่มีที่ไหนใช้ `$1` สองแบบนี้ให้ผลเหมือนกัน `?:` แค่บอกคนอ่านว่ามีไว้จัดกลุ่ม และเร็วขึ้นนิดเดียว (แทบวัดไม่ได้)
+## regex: `(js|css)` vs `(?:js|css)`
+They match the same; the only difference is `(...)` captures into `$1` and `(?:...)` doesn't
+If nothing uses `$1`, both give the same result. `?:` just tells the reader it's only for grouping, and is a tiny bit faster (barely measurable)
 
-## ทำไม `\.js|css$` ต้องมีวงเล็บเป็น `\.(?:js|css)$`
-`|` แบ่งทั้ง regex ออกเป็นสองฝั่ง ถ้าไม่มีวงเล็บ
-`\.js|css$` = มี `.js` ตรงไหนก็ได้ หรือ ลงท้ายด้วย `css` (เช่น `/a.json` ก็ตรง เพราะมี `.js` อยู่ข้างใน)
-วงเล็บจำกัดให้ `|` เลือกแค่ส่วนข้างในวงเล็บ
+## Why must `\.js|css$` be written with parentheses as `\.(?:js|css)$`
+Without parentheses, `|` splits the whole regex into two sides
+`\.js|css$` = contains `.js` anywhere, OR ends with `css` (so `/a.json` matches, since it contains `.js`)
+Parentheses limit `|` to choosing only within them
 
-## regex: `$1` นับวงเล็บยังไง เมื่อมี `(?:...)` ปน
-นับเฉพาะ `(...)` ธรรมดา `(?:...)` ไม่ถูกนับ
-`^/users/(\d+)/(\w+)$` กับ `/users/42/posts` → `$1` = `42`, `$2` = `posts`
-`^/users/(?:\d+)/(\w+)$` กับ `/users/42/posts` → `$1` = `posts`
+## regex: how is `$1` counted when `(?:...)` is mixed in
+Only plain `(...)` groups count; `(?:...)` doesn't
+`^/users/(\d+)/(\w+)$` on `/users/42/posts` → `$1` = `42`, `$2` = `posts`
+`^/users/(?:\d+)/(\w+)$` on `/users/42/posts` → `$1` = `posts`
 
-## regex: `\d` กับ `\w` คืออะไร
-`\d` = ตัวเลข 1 ตัว (เหมือน `[0-9]`)
-`\w` = ตัวอักษร ตัวเลข หรือ `_` 1 ตัว (เหมือน `[A-Za-z0-9_]`)
-`\d+` = ตัวเลขติดกันอย่างน้อย 1 ตัว เช่น `42`
+## regex: what are `\d` and `\w`
+`\d` = 1 digit (same as `[0-9]`)
+`\w` = 1 letter, digit, or `_` (same as `[A-Za-z0-9_]`)
+`\d+` = one or more digits in a row, e.g. `42`
 
-## nginx เอา `$1` จาก regex ใน `location` ไปใช้ยังไง
+## How does nginx use `$1` from a `location` regex
 `location ~ ^/users/(\d+)$ { return 200 "user id = $1"; }`
-ขอ `/users/42` → ได้ `user id = 42`
+Request `/users/42` → returns `user id = 42`
 
-## regex: เมื่อไหร่ต้องใส่วงเล็บ
-มี `|` → ต้องมีวงเล็บครอบตัวเลือก ใช้ `(?:...)` ถ้าไม่ต้องการ `$1`
-ตัวเลือกเดียว → ไม่ต้องมีวงเล็บ เช่น `(index\.html)$` ถอดเป็น `index\.html$` ได้
-จะใช้ `$1` ต่อ → ใช้ `(...)` ธรรมดา
+## regex: when do you need parentheses
+There's a `|` → wrap the alternatives in parentheses. Use `(?:...)` if you don't need `$1`
+Only one option → no parentheses needed, e.g. `(index\.html)$` can be just `index\.html$`
+You'll use `$1` later → use plain `(...)`
 
-## regex: `?` หลังตัวอักษรแปลว่าอะไร
-ตัวก่อนหน้ามีหรือไม่มีก็ได้
-`jpe?g` ตรงกับ `jpg` และ `jpeg`
+## regex: what does `?` after a character mean
+The preceding item is optional
+`jpe?g` matches `jpg` and `jpeg`
 
-## regex: `[A-Z0-9]`, `+`, `*`, `{8}` คืออะไร
-`[A-Z0-9]` = ตัวอักษร 1 ตัวที่อยู่ในช่วงนี้
-`+` / `*` / `{8}` = ตัวก่อนหน้า 1+ ครั้ง / 0+ ครั้ง / 8 ครั้งพอดี
-`[A-Z0-9]{8}` = ตัวพิมพ์ใหญ่หรือตัวเลข 8 ตัว
+## regex: what are `[A-Z0-9]`, `+`, `*`, `{8}`
+`[A-Z0-9]` = 1 character within this range
+`+` / `*` / `{8}` = the preceding item 1+ times / 0+ times / exactly 8 times
+`[A-Z0-9]{8}` = 8 uppercase letters or digits
 
-## `*` ใน regex กับ `*` ใน shell ต่างกันยังไง
-shell (glob): `*` = อะไรก็ได้กี่ตัวก็ได้ เช่น `rm dir/*`
-regex: `*` = ตัวก่อนหน้าซ้ำ 0+ ครั้ง ใช้เดี่ยวๆ ไม่ได้
-อยากได้ "อะไรก็ได้" ใน regex ต้องเขียน `.*`
+## `*` in regex vs `*` in the shell
+shell (glob): `*` = anything, any length, e.g. `rm dir/*`
+regex: `*` = repeat the preceding item 0+ times; it can't stand alone
+For "anything" in regex, write `.*`
 
-## อ่าน regex `\.(?:js|css|woff2?)$` ว่าอะไร
-ลงท้ายด้วย `.js`, `.css`, `.woff` หรือ `.woff2`
-`\.` จุดจริง, `(?:...|...)` อย่างใดอย่างหนึ่ง, `2?` มี 2 หรือไม่มีก็ได้, `$` จบตรงนี้
+## How do you read the regex `\.(?:js|css|woff2?)$`
+Ends with `.js`, `.css`, `.woff`, or `.woff2`
+`\.` a literal dot, `(?:...|...)` one of these, `2?` an optional 2, `$` ends here
 
-## exit code คืออะไร
-ทุกคำสั่งจบแล้วคืนตัวเลขให้ shell: `0` = สำเร็จ, ไม่ใช่ `0` = ล้มเหลว
-ดูของคำสั่งล่าสุดด้วย `echo $?` (PowerShell: `$LASTEXITCODE`)
-CI (GitHub Actions) ใช้ตัวนี้ตัดสิน step ✅/❌ เช่น `ng test` มี test พัง → exit code ไม่ใช่ 0 → job หยุด
+## What is an exit code
+Every command returns a number to the shell when it finishes: `0` = success, non-`0` = failure
+See the last command's with `echo $?` (PowerShell: `$LASTEXITCODE`)
+CI (GitHub Actions) uses it to mark a step ✅/❌, e.g. `ng test` with a failing test → non-0 exit code → the job stops
 
-## YAML: ระดับการเยื้องคืออะไร
-การเยื้อง = โครงสร้าง (เหมือน `{ }` ใน JSON) ห้ามใช้ tab
-key ที่เยื้องเท่ากันคือพี่น้องกัน เยื้องลึกกว่าคือลูก
-error แปลกๆ อย่าง `Unexpected value 'run'` มักแปลว่า key ไปอยู่ผิดชั้น ลองนึกว่าถ้าเป็น JSON จะได้โครงแบบไหน
+## YAML: what does indentation level mean
+Indentation = structure (like `{ }` in JSON). Tabs aren't allowed
+Keys at the same indentation are siblings; deeper indentation means children
+A weird error like `Unexpected value 'run'` usually means a key is at the wrong level. Picture what the JSON structure would be
 
-## `~` ใน path คืออะไร
-home directory ของ user ที่รันคำสั่งอยู่ shell แปลงให้ก่อนส่งให้คำสั่ง
-บน GitHub runner `~/.npm` = `/home/runner/.npm`
-root ใช้ `/root`, user ทั่วไปใช้ `/home/ชื่อuser`
+## What is `~` in a path
+The home directory of the user running the command. The shell expands it before the command sees it
+On a GitHub runner `~/.npm` = `/home/runner/.npm`
+root uses `/root`; regular users use `/home/<username>`
 
-## path แบบ relative ใน GitHub Actions นับจากไหน
-นับจาก `$GITHUB_WORKSPACE` คือโฟลเดอร์ที่ `actions/checkout` clone repo ลงไป
-`cache-dependency-path: web/package-lock.json` → GitHub ต่อข้างหน้าให้เป็น `$GITHUB_WORKSPACE/web/package-lock.json` เลยไม่ต้องเขียน path เต็ม
-เช่น `/home/runner/work/mui-lotto/mui-lotto` ถ้าต้องการ path เต็มให้ใช้ `${{ github.workspace }}` อย่าพิมพ์ path ตายตัว
+## Where are relative paths in GitHub Actions relative to
+`$GITHUB_WORKSPACE`, the folder `actions/checkout` cloned the repo into
+`cache-dependency-path: web/package-lock.json` → GitHub prefixes it to `$GITHUB_WORKSPACE/web/package-lock.json`, so no full path needed
+e.g. `/home/runner/work/mui-lotto/mui-lotto`. If you need the full path, use `${{ github.workspace }}`; don't hard-code it
 
-## GitHub Actions: `${{ ... }}` คืออะไร
-expression ที่ GitHub คำนวณก่อนรัน step แล้วแทนค่าลงไปในข้อความ
-ใช้ดึงค่าจาก context ต่างๆ เช่น `github`, `secrets`, `steps`
+## GitHub Actions: what is `${{ ... }}`
+An expression GitHub evaluates before running the step, substituting the value into the text
+Used to read values from contexts like `github`, `secrets`, `steps`
 
-## GitHub Actions: context `github`, `secrets`, `steps` ให้อะไร
-`github.actor`, `github.repository`, `github.sha` = ข้อมูล event: ใครเป็นคน push, repo ไหน, commit ไหน
-`secrets.GITHUB_TOKEN` = token / ค่าลับ
-`steps.<id>.outputs.<ชื่อ>` = ค่าที่ step ก่อนหน้าส่งออกมา
+## GitHub Actions: what do the `github`, `secrets`, `steps` contexts give you
+`github.actor`, `github.repository`, `github.sha` = event info: who pushed, which repo, which commit
+`secrets.GITHUB_TOKEN` = tokens / secret values
+`steps.<id>.outputs.<name>` = values output by an earlier step
 
-## GitHub Actions: ใน context `github` มีค่าอะไรที่ใช้บ่อย
-`github.actor` = ใคร trigger รอบนี้ (คนที่ push, เปิด PR, กด merge)
-`github.repository` = `owner/ชื่อrepo`
-`github.event_name` = event ที่ trigger เช่น `push`, `pull_request`
-`github.ref` = branch/ref เช่น `refs/heads/main`
-`github.sha` = commit ที่รันอยู่
-`github.event` = payload ของ webhook ทั้งก้อน (เลข PR, ข้อความ commit ฯลฯ)
+## GitHub Actions: commonly used values in the `github` context
+`github.actor` = who triggered this run (pushed, opened the PR, clicked merge)
+`github.repository` = `owner/repo-name`
+`github.event_name` = the triggering event, e.g. `push`, `pull_request`
+`github.ref` = branch/ref, e.g. `refs/heads/main`
+`github.sha` = the commit being run
+`github.event` = the whole webhook payload (PR number, commit message, etc.)
 
-## GitHub Actions: ตอนรันจาก PR `github.ref` เป็นอะไร
-ไม่ใช่ชื่อ branch แต่เป็น `refs/pull/<เลข PR>/merge` (commit จำลองที่ merge PR เข้า base แล้ว)
-GitHub ทดสอบ merge commit ชั่วคราวนี้ ไม่ใช่ branch ตรงๆ test ใน PR จึงตรวจผลหลัง merge ได้ก่อนกด merge จริง
-เลยใช้ `if: github.ref == 'refs/heads/main'` กัน job deploy ไม่ให้รันจาก PR ได้
-ชื่อ branch ของ PR ดูที่ `github.head_ref`
+## GitHub Actions: what is `github.ref` when running from a PR
+Not the branch name, but `refs/pull/<PR number>/merge` (a simulated commit with the PR merged into the base)
+GitHub tests this temporary merge commit, not the branch itself, so PR tests check the post-merge result before you actually merge
+That's why `if: github.ref == 'refs/heads/main'` stops a deploy job from running on PRs
+The PR's branch name is in `github.head_ref`
 
-## GitHub Actions: trigger `pull_request` ทำงานตอนไหน
-ค่าเริ่มต้น 3 กรณี: `opened` เปิด PR, `synchronize` push commit ใหม่เข้า branch ของ PR, `reopened` เปิด PR ที่ปิดไปแล้ว
-ไม่รันตอน merge
-(อยากให้รันตอนปิด PR ต้องเพิ่ม `types: [closed]` เอง)
+## GitHub Actions: when does the `pull_request` trigger run
+By default in 3 cases: `opened` (PR opened), `synchronize` (new commit pushed to the PR branch), `reopened` (a closed PR reopened)
+It doesn't run on merge
+(To run when a PR closes, add `types: [closed]` yourself)
 
-## GitHub Actions: กด merge PR แล้ว workflow ถูก trigger ด้วย event อะไร
-`push` เข้า main เพราะการ merge คือการสร้าง commit ใหม่บน main
-เปิด PR / push เพิ่ม → `pull_request` → test ✅ deploy ⏭
-กด merge → `push` (main) → test ✅ deploy ✅
+## GitHub Actions: which event triggers the workflow when you merge a PR
+`push` to main, because merging creates a new commit on main
+Open a PR / push more → `pull_request` → test ✅ deploy ⏭
+Click merge → `push` (main) → test ✅ deploy ✅
 
-## GitHub Actions: ทำไม job deploy ต้องมี `if:` ทั้งที่ตั้ง `on:` ไว้แล้ว
-`on:` อยู่ระดับ workflow ไม่ได้แยกตาม job
-workflow ที่ถูก trigger ด้วย `pull_request` จะรันทุก job รวมถึง deploy
-ต้องใช้ `if:` ที่ job deploy กันเอง
+## GitHub Actions: why does the deploy job need `if:` when `on:` is already set
+`on:` is at the workflow level, not per job
+A workflow triggered by `pull_request` runs every job, including deploy
+So the deploy job needs its own `if:` guard
 
-## GitHub Actions: `${{ github.sha }}` กับ `$GITHUB_SHA` ต่างกันยังไง
-ค่าเดียวกัน แต่คนแทนค่าต่างกัน
-`${{ }}` = GitHub แทนลงไปในสคริปต์ก่อน shell จะเห็น
-`$GITHUB_SHA` = env var ที่ shell อ่านเองตอนรัน (เหมือน `$HOME`)
+## GitHub Actions: `${{ github.sha }}` vs `$GITHUB_SHA`
+Same value, different substitutor
+`${{ }}` = GitHub substitutes it into the script before the shell sees it
+`$GITHUB_SHA` = an env var the shell reads itself at run time (like `$HOME`)
 
-## GitHub Actions: `steps.<id>.outputs` ต้องทำอะไรก่อนถึงใช้ได้
-step ต้นทางต้องมี `id:` และเขียน output ลงไฟล์ `$GITHUB_OUTPUT`
-เช่น `echo "tag=v1" >> "$GITHUB_OUTPUT"` ใน step ที่มี `id: meta`
-step หลังจากนั้นอ่านด้วย `${{ steps.meta.outputs.tag }}`
+## GitHub Actions: what's needed before `steps.<id>.outputs` works
+The source step must have an `id:` and write its output to the `$GITHUB_OUTPUT` file
+e.g. `echo "tag=v1" >> "$GITHUB_OUTPUT"` in a step with `id: meta`
+Later steps read it with `${{ steps.meta.outputs.tag }}`
 
-## "Last login: ... from <IP>" ตอน SSH เข้าเครื่อง คืออะไร
-คือ login ครั้งก่อนหน้า ไม่ใช่ครั้งนี้
-IP บ้าน/มือถือส่วนใหญ่เปลี่ยนได้ (dynamic IP) เลยเห็นคนละ IP ได้แม้เป็นตัวเราเอง
+## "Last login: ... from <IP>" when you SSH in: what is it
+The previous login, not this one
+Most home/mobile IPs change (dynamic IP), so you can see a different IP even when it was you
 
-## ดูว่าใคร login เข้าเครื่องบ้าง
-`echo $SSH_CLIENT` = IP ของ session ปัจจุบัน (ตัวเราตอนนี้)
-`who` = ใครกำลัง login อยู่ตอนนี้
-`last -i` = ประวัติ login ที่สำเร็จ (ใคร, IP ไหน, เมื่อไร)
-`sudo grep "Accepted" /var/log/auth.log` = login สำเร็จ พร้อมวิธี (password / publickey)
+## Seeing who has logged into the machine
+`echo $SSH_CLIENT` = the IP of the current session (you, right now)
+`who` = who is logged in right now
+`last -i` = history of successful logins (who, which IP, when)
+`sudo grep "Accepted" /var/log/auth.log` = successful logins, with the method (password / publickey)
 
-## "Failed password" เต็ม auth.log แปลว่าโดนเจาะไหม
-ไม่ใช่ เป็นบอทที่สุ่มเดารหัสทุก IP บนอินเทอร์เน็ต เครื่องใหม่โดนภายในไม่กี่นาที
-ตัวที่ต้องห่วงคือบรรทัด `Accepted` จาก IP ที่ไม่รู้จัก
-ป้องกัน: ใช้ SSH key อย่างเดียว ปิด `PasswordAuthentication`
+## auth.log full of "Failed password": have I been hacked
+No. Those are bots guessing passwords against every IP on the internet; a new machine gets hit within minutes
+What to worry about is `Accepted` lines from IPs you don't recognize
+Prevention: SSH keys only, disable `PasswordAuthentication`
 
-## เปิด `ufw` ยังไงไม่ให้ล็อกตัวเองออกจากเครื่อง
-ต้อง `sudo ufw allow OpenSSH` ก่อน `sudo ufw enable` เสมอ
-ไม่งั้น firewall ตัด SSH ทันทีแล้วเข้าเครื่องไม่ได้ (ต้องไปกู้ผ่าน web console ของผู้ให้บริการ VPS)
-หลัง enable ให้เปิด SSH หน้าต่างใหม่ทดสอบก่อนปิดหน้าต่างเดิม
+## How to enable `ufw` without locking yourself out
+Always `sudo ufw allow OpenSSH` before `sudo ufw enable`
+Otherwise the firewall cuts SSH immediately and you can't get back in (recovery is through the VPS provider's web console)
+After enabling, test in a new SSH window before closing the old one
 
-## `ufw default deny incoming` / `allow outgoing` คืออะไร
-ค่าเริ่มต้นเมื่อไม่มีกฎไหนตรง: ขาเข้าปิดหมด ขาออกเปิดหมด
-แล้วค่อย `allow` เฉพาะพอร์ตที่ต้องใช้ (whitelist)
+## What are `ufw default deny incoming` / `allow outgoing`
+The defaults when no rule matches: all incoming blocked, all outgoing allowed
+Then `allow` only the ports you need (a whitelist)
 
-## Docker `ports:` ข้าม `ufw` ได้
-Docker เขียนกฎ iptables เองก่อนถึงกฎของ ufw พอร์ตที่ publish ด้วย `-p 8080:80` เปิดสู่อินเทอร์เน็ตแม้ ufw ไม่ allow
-ถ้าต้องการให้เข้าได้แค่ในเครื่อง ใช้ `-p 127.0.0.1:8080:80`
-container ที่ไม่ publish port (คุยกันผ่าน docker network) ไม่โดนปัญหานี้
+## Docker `ports:` bypasses `ufw`
+Docker writes its own iptables rules that run before ufw's. A port published with `-p 8080:80` is open to the internet even if ufw doesn't allow it
+To allow access only from the machine itself, use `-p 127.0.0.1:8080:80`
+Containers that don't publish ports (talking over a docker network) don't have this problem
 
-## sshd อ่าน config ซ้ำกันแล้วเชื่อค่าไหน
-ค่าแรกที่เจอชนะ (ต่างจาก nginx หรือ CSS ที่ตัวหลังทับตัวหน้า)
-`/etc/ssh/sshd_config` มี `Include /etc/ssh/sshd_config.d/*.conf` อยู่บรรทัดบนๆ ไฟล์ใน `.d/` จึงถูกอ่านก่อน
-ตั้งชื่อไฟล์ให้ขึ้นต้นด้วย `00-` เพื่อให้ถูกอ่านก่อนไฟล์อื่น เช่น `50-cloud-init.conf`
+## sshd reads a setting twice: which value wins
+The first one found wins (unlike nginx or CSS, where later overrides earlier)
+`/etc/ssh/sshd_config` has `Include /etc/ssh/sshd_config.d/*.conf` near the top, so files in `.d/` are read first
+Name your file starting with `00-` so it's read before others, e.g. `50-cloud-init.conf`
 
-## ดูค่า sshd ที่ใช้งานจริง
-`sudo sshd -t` = ตรวจ syntax (ไม่มี output = ผ่าน)
-`sudo sshd -T` = พิมพ์ค่าทั้งหมดหลังรวมทุกไฟล์แล้ว เช่น `sudo sshd -T | grep -i passwordauth`
+## Seeing the sshd settings actually in effect
+`sudo sshd -t` = check syntax (no output = OK)
+`sudo sshd -T` = print every setting after merging all files, e.g. `sudo sshd -T | grep -i passwordauth`
 
-## ทดสอบว่าปิด password login แล้วจริง
+## Testing that password login is really disabled
 `ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password user@host`
-ต้องได้ `Permission denied (publickey)` ทันที โดยไม่ถามรหัส
+You should get `Permission denied (publickey)` immediately, without a password prompt
 
-## `grep: ...: Permission denied` ทั้งที่ไฟล์มีอยู่
-user เราไม่มีสิทธิ์อ่านไฟล์นั้น (เช่นไฟล์ที่เป็น `600` ของ root) ต้องใช้ `sudo grep ...`
-ดูสิทธิ์ด้วย `ls -l` เช่น `-rw------- root root` = root อ่าน/เขียนได้คนเดียว
-ไฟล์ config ที่อาจมีข้อมูลลับมักถูกตั้งแบบนี้
+## `grep: ...: Permission denied` even though the file exists
+Your user isn't allowed to read that file (e.g. root's `600` file). Use `sudo grep ...`
+Check permissions with `ls -l`, e.g. `-rw------- root root` = only root can read/write
+Config files that may contain secrets are often set like this
 
-## ดูว่าโปรแกรมไหนจองพอร์ตอยู่
-`sudo ss -tlnp` = พอร์ต TCP ที่กำลัง listen พร้อมชื่อ process
-`-t` TCP, `-l` listening, `-n` แสดงเลขพอร์ตไม่แปลงเป็นชื่อ, `-p` แสดง process (ต้อง sudo)
-`127.0.0.1:8080` = รับเฉพาะในเครื่อง, `0.0.0.0:80` = รับจากทุกที่
-`sudo ss -tlnp | grep 8081` = กรองเหลือแค่บรรทัดที่มี `8081` ไม่มีผลลัพธ์ = ไม่มีใครฟังพอร์ตนั้น
+## Seeing which program holds a port
+`sudo ss -tlnp` = listening TCP ports with process names
+`-t` TCP, `-l` listening, `-n` numeric ports (don't resolve to names), `-p` show process (needs sudo)
+`127.0.0.1:8080` = accepts only from this machine, `0.0.0.0:80` = accepts from anywhere
+`sudo ss -tlnp | grep 8081` = keep only lines containing `8081`. No output = nothing listens on that port
 
-## `curl` flag ที่ใช้บ่อย
-`-I` = ขอแค่ header (ส่งเป็น `HEAD` ไม่ใช่ `GET`)
-`-v` = แสดงทุกอย่างทั้ง request และ response header, `-s` = เงียบ ไม่แสดง progress
-`-H "ชื่อ: ค่า"` = ใส่ header ไปกับ request, `-L` = ตาม redirect
-`-o /dev/null` = ทิ้ง body, `-D -` = พิมพ์ response header ออกจอ (`-` = stdout)
+## Commonly used `curl` flags
+`-I` = headers only (sends `HEAD`, not `GET`)
+`-v` = show everything, request and response headers; `-s` = silent, no progress
+`-H "Name: value"` = add a header to the request; `-L` = follow redirects
+`-o /dev/null` = discard the body; `-D -` = print response headers to the screen (`-` = stdout)
 
-## เช็คด้วย `curl` ว่า response ถูก gzip ไหม
-`curl -s -o /dev/null -D - -H "Accept-Encoding: gzip" <URL>` แล้วดูว่ามี `Content-Encoding: gzip` ไหม
-ต้องใส่ `Accept-Encoding` เอง เพราะ curl ไม่บอก server ว่ารับ gzip ได้ (เบราว์เซอร์บอกเสมอ)
-ใช้ `GET` แบบนี้แทน `-I` เพราะ `HEAD` อาจได้ header ไม่ตรงกับตอนขอจริง
-`--http1.0` / `--http1.1` = บังคับเวอร์ชัน HTTP ใช้เทียบผลได้
+## Checking with `curl` whether a response is gzipped
+`curl -s -o /dev/null -D - -H "Accept-Encoding: gzip" <URL>` and look for `Content-Encoding: gzip`
+You must add `Accept-Encoding` yourself, because curl doesn't tell the server it accepts gzip (browsers always do)
+Use `GET` like this instead of `-I`, because `HEAD` may return headers that differ from a real request
+`--http1.0` / `--http1.1` = force an HTTP version, useful for comparing
 
-## host key fingerprint ของ SSH คืออะไร
-ลายนิ้วมือของ public key ประจำเครื่อง server ใช้ยืนยันว่าต่อเข้าเครื่องตัวจริง
-ดูบน server: `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`
-ดูค่าที่เครื่องเราจำไว้: `ssh-keygen -lF <IP>` (อ่านจาก `~/.ssh/known_hosts`)
+## What is an SSH host key fingerprint
+A fingerprint of the server machine's own public key, used to verify you're connecting to the real machine
+On the server: `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub`
+What your machine remembers: `ssh-keygen -lF <IP>` (reads `~/.ssh/known_hosts`)
 
-## `ssh-keygen -lf <ไฟล์>` แต่ละ flag คืออะไร
-`-l` = list: แสดง fingerprint ของ key
-`-f <ไฟล์>` = key ไฟล์ไหน (`-f -` = อ่านจาก stdin เช่นต่อจาก `ssh-keyscan`)
-ระวัง `-F` ตัวใหญ่ = find: หา host ใน `known_hosts` คนละความหมายกับ `-f`
+## What each flag in `ssh-keygen -lf <file>` means
+`-l` = list: show the key's fingerprint
+`-f <file>` = which key file (`-f -` = read from stdin, e.g. piped from `ssh-keyscan`)
+Careful: capital `-F` = find: look up a host in `known_hosts`, a different meaning from `-f`
 
-## host key ของเครื่อง กับ key ที่ใช้ login ต่างกันยังไง
-host key (`/etc/ssh/ssh_host_*_key.pub`) = ประจำเครื่อง server, `sshd` ใช้ยืนยันว่า "ฉันคือเครื่องตัวจริง"
-key ที่ใช้ login (`~/.ssh/id_ed25519`) = ประจำตัวคน ใช้ยืนยันว่า "ฉันคือ user นี้"
-พิสูจน์คนละทาง: host key กันต่อผิดเครื่อง, login key แทนรหัสผ่าน
+## Host key vs the key you log in with
+host key (`/etc/ssh/ssh_host_*_key.pub`) = belongs to the server; `sshd` uses it to prove "I'm the real machine"
+login key (`~/.ssh/id_ed25519`) = belongs to a person; proves "I'm this user"
+They prove opposite directions: the host key stops you connecting to the wrong machine; the login key replaces a password
 
-## nginx บน Ubuntu: `sites-available` กับ `sites-enabled`
-`sites-available/` = เก็บ config ทุกเว็บ, `sites-enabled/` = symlink ไปยังตัวที่เปิดใช้
-nginx อ่านแค่ `sites-enabled/` เปิดเว็บ: `sudo ln -s /etc/nginx/sites-available/x /etc/nginx/sites-enabled/`
-ปิดเว็บ: ลบ symlink ทิ้ง (ไฟล์ต้นฉบับยังอยู่)
+## nginx on Ubuntu: `sites-available` vs `sites-enabled`
+`sites-available/` = holds every site's config; `sites-enabled/` = symlinks to the active ones
+nginx reads only `sites-enabled/`. Enable a site: `sudo ln -s /etc/nginx/sites-available/x /etc/nginx/sites-enabled/`
+Disable a site: delete the symlink (the original file stays)
 
-## `systemctl reload` กับ `restart` ต่างกันยังไง
-`reload` = อ่าน config ใหม่ ไม่ตัด connection ที่มีอยู่ (nginx รองรับ)
-`restart` = หยุดแล้วเริ่มใหม่ เว็บดับชั่วครู่
-ใช้ `sudo nginx -t && sudo systemctl reload nginx` เพื่อให้ reload เกิดเฉพาะเมื่อ config ผ่าน
+## `systemctl reload` vs `restart`
+`reload` = re-read config without dropping existing connections (nginx supports it)
+`restart` = stop and start again; the site is briefly down
+Use `sudo nginx -t && sudo systemctl reload nginx` so the reload only happens when the config passes
 
-## nginx `gzip on` อย่างเดียวบีบอัดอะไรบ้าง
-แค่ `text/html`
-ไฟล์ชนิดอื่น (json, js, css) ต้องระบุใน `gzip_types` เช่น `gzip_types application/json application/javascript text/css;`
+## What does nginx `gzip on` alone compress
+Only `text/html`
+Other types (json, js, css) must be listed in `gzip_types`, e.g. `gzip_types application/json application/javascript text/css;`
 
-## nginx `proxy_pass` ส่ง request ต่อด้วย HTTP เวอร์ชันไหน
-ค่าเริ่มต้นคือ `HTTP/1.0` แม้เบราว์เซอร์จะส่งมาเป็น 1.1
-แก้ด้วย `proxy_http_version 1.1;` ในบล็อกที่มี `proxy_pass`
+## Which HTTP version does nginx `proxy_pass` forward with
+`HTTP/1.0` by default, even if the browser sent 1.1
+Fix with `proxy_http_version 1.1;` in the block that has `proxy_pass`
 
-## nginx สองชั้น (proxy → container) แล้ว `draws.json` ไม่ถูก gzip เพราะอะไร
-ชั้นนอกส่งต่อเป็น `HTTP/1.0` (ค่าเริ่มต้นของ `proxy_pass`)
-ชั้นในมี `gzip_http_version 1.1` เป็นค่าเริ่มต้น = ไม่ gzip ให้ request 1.0 เลยส่งไฟล์ดิบกลับ
-ชั้นนอกมี `gzip on` แต่ไม่มี `gzip_types` จึงบีบแค่ HTML สุดท้าย JSON ไม่ถูกบีบเลยทั้งสองชั้น
-แก้: `proxy_http_version 1.1;` ที่ชั้นนอก พิสูจน์: `curl` ตรงเข้า container ด้วย `--http1.0` เทียบกับ `--http1.1`
+## Two layers of nginx (proxy → container) and `draws.json` isn't gzipped. Why
+The outer layer forwards as `HTTP/1.0` (the `proxy_pass` default)
+The inner layer defaults to `gzip_http_version 1.1` = no gzip for 1.0 requests, so it returns the raw file
+The outer layer has `gzip on` but no `gzip_types`, so it only compresses HTML. In the end, the JSON isn't compressed by either layer
+Fix: `proxy_http_version 1.1;` on the outer layer. Proof: `curl` straight into the container with `--http1.0` vs `--http1.1`
 
-## `cmd1 && cmd2` กับ `cmd1; cmd2`
-`&&` = รัน `cmd2` เฉพาะเมื่อ `cmd1` สำเร็จ (exit code 0)
-`;` = รัน `cmd2` เสมอ ไม่สนผลของ `cmd1`
+## `cmd1 && cmd2` vs `cmd1; cmd2`
+`&&` = run `cmd2` only if `cmd1` succeeded (exit code 0)
+`;` = always run `cmd2`, regardless of `cmd1`'s result
 
-## `|` (pipe) คืออะไร
-เอาสิ่งที่คำสั่งซ้ายพิมพ์ออกมา ส่งเป็น input (stdin) ของคำสั่งขวา แทนที่จะแสดงบนจอ
-`echo "$TOKEN" | docker login ... --password-stdin` = ส่ง token เข้า stdin ของ `docker login`
-`ss -tlnp | grep 8081` = ส่งผลของ `ss` ให้ `grep` กรอง
+## What is `|` (pipe)
+Takes what the left command prints and feeds it as input (stdin) to the right command, instead of showing it on screen
+`echo "$TOKEN" | docker login ... --password-stdin` = sends the token into `docker login`'s stdin
+`ss -tlnp | grep 8081` = sends `ss`'s output to `grep` to filter
 
-## ทำไมเขียน `"$TOKEN"` มีเครื่องหมายคำพูด
-ให้ shell ส่งค่าเป็นก้อนเดียว
-ไม่มีคำพูด + ค่ามีช่องว่างหรืออักขระพิเศษ → shell แยกเป็นหลายท่อน หรือขยาย `*` ให้
-นิสัยที่ดี: ใส่ `"..."` ครอบตัวแปรเสมอ
+## Why write `"$TOKEN"` with quotes
+So the shell passes the value as one piece
+No quotes + a value with spaces or special characters → the shell splits it into several pieces, or expands `*`
+Good habit: always wrap variables in `"..."`
 
-## `IMAGE_TAG=sha-bbb docker compose up -d` (ตัวแปรนำหน้าคำสั่ง) คืออะไร
-ตั้ง env var ให้คำสั่งนั้นคำสั่งเดียว พอจบก็หายไป ไม่ค้างใน shell
-ต่างจาก `export IMAGE_TAG=...` ที่ค้างอยู่ให้ทุกคำสั่งถัดไป
+## `IMAGE_TAG=sha-bbb docker compose up -d` (a variable before the command): what is it
+Sets an env var for that one command only; it's gone afterward and doesn't stay in the shell
+Unlike `export IMAGE_TAG=...`, which stays for every following command
 
-## `set -e` ใน shell script คืออะไร
-`set` = คำสั่งของ shell ไว้เปิด/ปิด option ของ shell เอง, `-e` = exit on error
-คำสั่งไหนล้มเหลว (exit code ไม่ใช่ 0) script หยุดทันที
-ไม่ใส่ = พังกลางทางแต่รันต่อ และ exit code ของ script = ของคำสั่งสุดท้าย (อาจออกมาเหมือนสำเร็จ)
-ใน `appleboy/ssh-action` ใช้แทน option `script_stop` ที่ถูกถอดออกแล้ว: ไม่มี = `pull` พังแต่ step ขึ้นเขียว
+## What is `set -e` in a shell script
+`set` = a shell command that turns the shell's own options on/off; `-e` = exit on error
+If any command fails (non-0 exit code), the script stops immediately
+Without it = it breaks midway but keeps going, and the script's exit code = the last command's (it may look like success)
+In `appleboy/ssh-action`, use it instead of the removed `script_stop` option: without it, `pull` fails but the step shows green
 
-## `set -x` คืออะไร
-พิมพ์ทุกคำสั่งออกมาก่อนรัน (ขึ้นต้นด้วย `+`) ใช้ตอน debug ว่า script ทำถึงไหนและค่าตัวแปรเป็นอะไร
-ระวัง: ค่าลับในคำสั่งจะโผล่ใน log ด้วย
+## What is `set -x`
+Prints every command before running it (prefixed with `+`). Used when debugging to see how far the script got and what the variables were
+Careful: secret values in commands will show up in the log too
 
-## `trap 'คำสั่ง' EXIT` คืออะไร
-ลงทะเบียนคำสั่งให้รันตอน script จบ ไม่ว่าจบเพราะสำเร็จหรือพัง
-ใช้เก็บกวาด เช่น `trap 'docker logout ghcr.io' EXIT` คู่กับ `set -e`
-ทำไมไม่เขียน `docker logout` ไว้ท้าย script: ถ้า `set -e` หยุดกลางทาง บรรทัดท้ายจะไม่ได้รัน ส่วน `trap` รันทุกกรณี
-เทียบ JS: คล้าย `finally { }`
+## What is `trap 'command' EXIT`
+Registers a command to run when the script ends, whether it succeeded or failed
+Used for cleanup, e.g. `trap 'docker logout ghcr.io' EXIT` paired with `set -e`
+Why not put `docker logout` at the end of the script: if `set -e` stops it midway, the last line never runs, but `trap` runs in every case
+JS comparison: similar to `finally { }`
 
-## ทำไม `docker login --password-stdin` แทน `-p`
-`-p $TOKEN` ทำให้ token เป็นส่วนหนึ่งของคำสั่ง เห็นได้ใน `ps` และ shell history
-`echo "$TOKEN" | docker login ... --password-stdin` ส่งผ่าน stdin ไม่โผล่ในคำสั่ง
+## Why `docker login --password-stdin` instead of `-p`
+`-p $TOKEN` makes the token part of the command, visible in `ps` and shell history
+`echo "$TOKEN" | docker login ... --password-stdin` passes it through stdin, so it never appears in the command
 
-## deploy ด้วย `docker compose pull` แล้ว `docker compose up -d` แต่ละตัวทำอะไร
-`pull` = ดึง image ตาม tag ใน `compose.yml` (เช่น `:${IMAGE_TAG}`) มาไว้บนเครื่อง ยังไม่แตะ container
-`up -d` = compose เห็นว่า image เปลี่ยน จึงสร้าง container ใหม่ให้เองแล้วรันเบื้องหลัง (`-d` = detached)
-ไม่ต้อง `down` ก่อน service ที่ image ไม่เปลี่ยนจะไม่ถูกแตะ
+## Deploying with `docker compose pull` then `docker compose up -d`: what does each do
+`pull` = download the image for the tag in `compose.yml` (e.g. `:${IMAGE_TAG}`) onto the machine. Containers aren't touched yet
+`up -d` = compose sees the image changed, so it recreates the container itself and runs it in the background (`-d` = detached)
+No need to `down` first. Services whose image didn't change aren't touched
 
-## เช็คว่า container รันจาก image ตัวไหนอยู่
-`docker inspect --format '{{.Config.Image}}' mui-lotto` → เช่น `ghcr.io/.../mui-lotto:sha-ea8f6aa`
-ใช้ยืนยันว่า deploy ได้ sha ใหม่จริง
-`{{ }}` ตรงนี้เป็น Go template ของ Docker ไม่เกี่ยวกับ `${{ }}` ของ GitHub Actions
-ครอบด้วย `'...'` ให้ shell ส่งไปทั้งก้อนแบบไม่แตะ
+## Checking which image a container is running from
+`docker inspect --format '{{.Config.Image}}' mui-lotto` → e.g. `ghcr.io/.../mui-lotto:sha-ea8f6aa`
+Used to confirm the deploy really picked up the new sha
+The `{{ }}` here is Docker's Go template, unrelated to GitHub Actions' `${{ }}`
+Wrapped in `'...'` so the shell passes it through untouched
 
-## image บน VPS กับบน GHCR อันไหนตัวจริง
-GHCR = ที่เก็บถาวร ทุกเวอร์ชันที่เคย push ยังอยู่ (ไม่ลบเองถ้าไม่ได้สั่ง)
-VPS = แค่สำเนาที่ pull มาใช้ `prune` ลบแค่สำเนา
-image เก่าบน VPS หายไปก็ rollback ได้ เพราะ pull กลับมาจาก GHCR ได้
+## Image on the VPS vs on GHCR: which is the real one
+GHCR = permanent storage; every version ever pushed is still there (nothing is deleted unless you say so)
+VPS = just a copy pulled for use; `prune` only deletes the copy
+Old images gone from the VPS can still be rolled back to, because they can be pulled from GHCR again
 
-## rollback ด้วยมือบน VPS ทำยังไง
-`cd` ไปโฟลเดอร์ที่มี `compose.yml` แล้ว `IMAGE_TAG=sha-<เก่า> docker compose up -d`
-ไม่มี image นั้นในเครื่อง → compose ไป pull จาก registry ให้เอง แล้วสร้าง container ใหม่
-image private ต้อง `docker login` ก่อน แล้ว `logout` หลังเสร็จ
+## Rolling back by hand on the VPS
+`cd` to the folder with `compose.yml`, then `IMAGE_TAG=sha-<old> docker compose up -d`
+If that image isn't on the machine → compose pulls it from the registry itself, then creates a new container
+A private image needs `docker login` first, then `logout` when done
 
-## rollback ผ่าน GitHub Actions (ไม่ต้อง SSH)
-เปิด run เก่าของ commit ที่ยังดีอยู่ในแท็บ Actions → Re-run all jobs
-workflow จะ checkout commit เก่า build (เร็วเพราะมี cache) แล้ว deploy `sha-` ของ commit นั้น
-ระวัง: tag `latest` จะถูกย้ายกลับไปชี้ตัวเก่าด้วย
+## Rolling back through GitHub Actions (no SSH)
+Open an old run of a known-good commit in the Actions tab → Re-run all jobs
+The workflow checks out the old commit, builds (fast thanks to the cache), then deploys that commit's `sha-` tag
+Careful: the `latest` tag also gets moved back to the old one
 
-## rollback แล้ว ทำไมยังไม่จบ
-rollback ทุกแบบเป็นการแก้ชั่วคราว push เข้า main ครั้งถัดไปจะ deploy โค้ดล่าสุด (ที่ยังพัง) กลับขึ้นมา
-แก้ถาวร: `git revert <commit ที่มีปัญหา>` แล้ว push ให้ main กลับเป็นโค้ดที่ดี แล้วปล่อย workflow deploy ตามปกติ
+## You rolled back. Why isn't it over
+Every kind of rollback is a temporary fix. The next push to main deploys the latest (still broken) code again
+Permanent fix: `git revert <bad commit>` and push, so main is back to good code, then let the workflow deploy as usual
 
-## `docker image prune -f` กับ `-af` ต่างกันยังไง
-`-f` = ลบเฉพาะ dangling (image ที่ไม่มี tag แล้ว)
-`-af` = ลบทุก image ที่ไม่มี container ใช้ (รวมที่ยังมี tag)
-จำกัดขอบเขตด้วย `--filter "label=..."` เพื่อไม่ให้ไปลบ image ของโปรเจกต์อื่น
+## `docker image prune -f` vs `-af`
+`-f` = removes only dangling images (ones with no tag left)
+`-af` = removes every image not used by a container (including tagged ones)
+Limit the scope with `--filter "label=..."` so you don't delete other projects' images
 
-## ทำไม `docker image prune -f` ไม่พอ เมื่อ tag image ด้วย sha ทุก deploy
-image เก่ายังมี tag ของตัวเอง (`sha-aaa`, `sha-bbb`, ...) จึงไม่ถือเป็น dangling
-`-f` อย่างเดียว image จะสะสมทุกครั้งที่ deploy ต้องใช้ `-a`
-container ที่รันอยู่ปลอดภัย เพราะ `-a` ลบแค่ image ที่ไม่มี container ใช้
-ผลข้างเคียง: rollback ไป sha เก่าต้อง `pull` จาก registry ใหม่ เพราะในเครื่องไม่มีแล้ว
+## Why `docker image prune -f` isn't enough when every deploy tags the image with a sha
+Old images still have their own tags (`sha-aaa`, `sha-bbb`, ...), so they aren't dangling
+With `-f` alone, images pile up on every deploy. You need `-a`
+Running containers are safe, because `-a` only removes images no container uses
+Side effect: rolling back to an old sha has to `pull` from the registry again, since it's no longer on the machine
 
-## กรอง `docker image prune -af` ให้ลบแค่ image ของ repo เดียวยังไง
-`docker/metadata-action` ติด label `org.opencontainers.image.source` (URL ของ repo) ให้ทุก image
+## How to filter `docker image prune -af` to one repo's images
+`docker/metadata-action` adds the label `org.opencontainers.image.source` (the repo URL) to every image
 `docker image prune -af --filter "label=org.opencontainers.image.source=https://github.com/<owner>/<repo>"`
-image ของโปรเจกต์อื่นบนเครื่องเดียวกันไม่มี label นี้ จึงไม่โดนลบ
+Images from other projects on the same machine don't have this label, so they aren't removed
 
-## ทำไม host fingerprint ถูกแต่ยังขึ้น mismatch
-server มี host key หลายชนิด (ED25519, ECDSA, RSA) แต่ละชนิดมี fingerprint ต่างกัน
-client กับ server ตกลงกันว่าจะใช้ชนิดไหน: OpenSSH เลือก ED25519 ก่อน แต่ library SSH ของ Go (ที่ appleboy/drone-ssh ใช้) เลือก ECDSA ก่อน
-ดูทุกชนิดจากภายนอก: `ssh-keyscan <host> | ssh-keygen -lf -`
+## Why "host key mismatch" when the fingerprint is correct
+A server has several host key types (ED25519, ECDSA, RSA), each with a different fingerprint
+Client and server negotiate which type to use: OpenSSH prefers ED25519, but Go's SSH library (used by appleboy/drone-ssh) prefers ECDSA
+See all types from outside: `ssh-keyscan <host> | ssh-keygen -lf -`
 
-## secret ของ GitHub Actions แก้แล้วต้อง push ใหม่ไหม
-ไม่ต้อง secret ถูกอ่านตอน job เริ่มรัน กด Re-run failed jobs ได้เลย
-secret เปิดดูค่าเดิมไม่ได้ ใส่ทับได้อย่างเดียว
-คัดลอก private key ใน PowerShell: `Get-Content <ไฟล์> -Raw | Set-Clipboard` (`-Raw` เก็บบรรทัดใหม่ไว้ครบ)
+## After editing a GitHub Actions secret, do you need to push again
+No. Secrets are read when the job starts, so just click Re-run failed jobs
+You can't view a secret's old value, only overwrite it
+Copying a private key in PowerShell: `Get-Content <file> -Raw | Set-Clipboard` (`-Raw` keeps all the line breaks)
 
-## `env:` ใน step ของ `appleboy/ssh-action` ทำไม script บน VPS ไม่เห็นตัวแปร
-`env:` ตั้ง env var ให้ step บน runner ของ GitHub (คำนวณ `${{ }}` เป็นค่าจริงก่อน)
-script ของ appleboy รันบน VPS ซึ่งเป็นอีกเครื่อง ตัวแปรไม่ข้ามไปเอง
-ต้องระบุใน `envs: IMAGE_TAG,GHCR_TOKEN` ว่าจะส่งตัวไหนข้ามไป
-ภาพจำ: `env:` = ใส่ของลงกระเป๋าบน runner, `envs:` = เลือกชิ้นที่หยิบติดตัวไป VPS
+## `env:` in an `appleboy/ssh-action` step: why can't the script on the VPS see the variables
+`env:` sets env vars for the step on GitHub's runner (with `${{ }}` already evaluated)
+appleboy's script runs on the VPS, a different machine; variables don't cross over on their own
+List the ones to send in `envs: IMAGE_TAG,GHCR_TOKEN`
+Mental model: `env:` = packing your bag on the runner; `envs:` = picking which items to carry to the VPS
