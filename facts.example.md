@@ -1,7 +1,7 @@
 # My flashcards
 
 <!--
-Copy this file to facts.md (next to fact_widget.pyw or fact_widget.exe) and edit it.
+Copy this file to facts.md (next to recall_widget.pyw or recall-widget.exe) and edit it.
 
 Format:
   - Each "## " heading is one card. The heading is the question (shown first).

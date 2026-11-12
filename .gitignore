@@ -2,7 +2,7 @@
 CLAUDE.md
 
 # Window state on this machine (position, topmost), not meant to be shared
-.fact_widget_state.json
+.recall_widget_state.json
 
 # Python cache
 __pycache__/

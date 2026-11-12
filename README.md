@@ -24,9 +24,9 @@ It's built for things you keep forgetting: command flags, config rules, syntax. 
 
 ### Option 1: the exe (no Python needed)
 
-1. Download `fact_widget.exe` from the [Releases](../../releases) page.
+1. Download `recall-widget.exe` from the [Releases](../../releases) page.
 2. Put `facts.example.md` from this repo in the same folder as the exe, and rename it to `facts.md`.
-3. Double-click `fact_widget.exe`.
+3. Double-click `recall-widget.exe`.
 
 Windows SmartScreen may warn that the app is from an unknown publisher, because the exe isn't code-signed. Choose "More info", then "Run anyway".
 
@@ -38,7 +38,7 @@ cd recall-widget
 copy facts.example.md facts.md
 ```
 
-Then double-click `fact_widget.pyw`. The `.pyw` extension runs it with `pythonw`, so no console window opens.
+Then double-click `recall_widget.pyw`. The `.pyw` extension runs it with `pythonw`, so no console window opens.
 
 ## Controls
 
@@ -51,7 +51,7 @@ Then double-click `fact_widget.pyw`. The `.pyw` extension runs it with `pythonw`
 
 ## Writing cards
 
-Cards go in `facts.md`, next to `fact_widget.pyw` (or next to the exe).
+Cards go in `facts.md`, next to `recall_widget.pyw` (or next to the exe).
 
 ```markdown
 # My flashcards
@@ -73,7 +73,7 @@ Its answer. Every line until the next "## " belongs to this card.
 
 ## Settings
 
-Timing and size are constants near the top of `fact_widget.pyw`:
+Timing and size are constants near the top of `recall_widget.pyw`:
 
 | Constant | Default | Meaning |
 |---|---|---|
@@ -82,13 +82,13 @@ Timing and size are constants near the top of `fact_widget.pyw`:
 | `WIDTH` | `380` | Window width in pixels |
 | `SINGLE_INSTANCE_PORT` | `47613` | Local port used to detect a running instance |
 
-The window position and the "Always on top" setting are saved in `.fact_widget_state.json`.
+The window position and the "Always on top" setting are saved in `.recall_widget_state.json`.
 
 ## Building the exe
 
 ```
 pip install pyinstaller
-python -m PyInstaller --noconsole --onefile --name fact_widget fact_widget.pyw
+python -m PyInstaller --noconsole --onefile --name recall-widget recall_widget.pyw
 ```
 
-The result is `dist/fact_widget.exe`. It looks for `facts.md` in its own folder, so ship the two together.
+The result is `dist/recall-widget.exe`. It looks for `facts.md` in its own folder, so ship the two together.

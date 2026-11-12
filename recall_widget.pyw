@@ -34,7 +34,7 @@ if getattr(sys, "frozen", False):
 else:
     HERE = Path(__file__).resolve().parent
 FACTS_FILE = HERE / "facts.md"
-STATE_FILE = HERE / ".fact_widget_state.json"  # remembers window position + topmost setting
+STATE_FILE = HERE / ".recall_widget_state.json"  # remembers window position + topmost setting
 
 # Single instance: the first instance holds this port. A later launch can't bind it,
 # which is how it knows an instance is already running
@@ -127,7 +127,7 @@ def listen_hotkey(events: queue.Queue) -> None:
             events.put("show")
 
 
-class FactWidget:
+class RecallWidget:
     def __init__(self, server: socket.socket | None) -> None:
         self.root = tk.Tk()
         self.state = self._load_state()
@@ -331,4 +331,4 @@ if __name__ == "__main__":
     already_running, server = claim_single_instance()
     if already_running:
         sys.exit()  # the running instance got the message and will show itself; this one doesn't need to open
-    FactWidget(server).run()
+    RecallWidget(server).run()
