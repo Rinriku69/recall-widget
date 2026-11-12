@@ -24,16 +24,16 @@ It's built for things you keep forgetting: command flags, config rules, syntax. 
 
 ### Option 1: the exe (no Python needed)
 
-1. Download `recall-widget.exe` from the [Releases](../../releases) page.
-2. Put `facts.example.md` from this repo in the same folder as the exe, and rename it to `facts.md`.
-3. Double-click `recall-widget.exe`.
+1. Download `recall-widget-<version>-windows.zip` from the [latest release](https://github.com/Rinriku69/recall-widget/releases/latest).
+2. Extract it anywhere. You get `recall-widget.exe` and a starter `facts.md` side by side.
+3. Double-click `recall-widget.exe`, then edit `facts.md` to add your own cards (right-click the window, then "Open notes file").
 
 Windows SmartScreen may warn that the app is from an unknown publisher, because the exe isn't code-signed. Choose "More info", then "Run anyway".
 
 ### Option 2: from source
 
 ```
-git clone https://github.com/<your-username>/recall-widget.git
+git clone https://github.com/Rinriku69/recall-widget.git
 cd recall-widget
 copy facts.example.md facts.md
 ```
@@ -91,4 +91,13 @@ pip install pyinstaller
 python -m PyInstaller --noconsole --onefile --name recall-widget recall_widget.pyw
 ```
 
-The result is `dist/recall-widget.exe`. It looks for `facts.md` in its own folder, so ship the two together.
+The result is `dist/recall-widget.exe`. It looks for `facts.md` in its own folder, so ship the two together. To package a release zip (PowerShell):
+
+```powershell
+New-Item -ItemType Directory -Force release | Out-Null
+Copy-Item dist\recall-widget.exe release\
+Copy-Item facts.example.md release\facts.md
+Compress-Archive -Path release\* -DestinationPath recall-widget-v1.0.0-windows.zip -Force
+```
+
+`release/` and `*.zip` are gitignored.
