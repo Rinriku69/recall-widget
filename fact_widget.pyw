@@ -1,4 +1,4 @@
-"""Small always-on-top window that cycles through the facts in linux-facts.md
+"""Small always-on-top window that cycles through the facts in facts.md
 
 Double-click this file to open it (.pyw = run with pythonw, so no console window)
 - Left-click: reveal the answer / go to the next fact
@@ -33,7 +33,7 @@ if getattr(sys, "frozen", False):
     HERE = Path(sys.executable).resolve().parent
 else:
     HERE = Path(__file__).resolve().parent
-FACTS_FILE = HERE / "linux-facts.md"
+FACTS_FILE = HERE / "facts.md"
 STATE_FILE = HERE / ".fact_widget_state.json"  # remembers window position + topmost setting
 
 # Single instance: the first instance holds this port. A later launch can't bind it,
