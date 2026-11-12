@@ -14,3 +14,5 @@ dist/
 *.spec
 facts.md
 linux-facts.md
+release/
+*.zip
